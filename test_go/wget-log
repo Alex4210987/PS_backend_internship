@@ -1,4 +1,0 @@
---2023-07-07 19:01:48--  http://www.google.com/
-Resolving www.google.com (www.google.com)... 69.171.224.36, 2a03:2880:f126:83:face:b00c:0:25de
-Connecting to www.google.com (www.google.com)|69.171.224.36|:80... failed: Connection timed out.
-Connecting to www.google.com (www.google.com)|2a03:2880:f126:83:face:b00c:0:25de|:80... failed: Network is unreachable.
