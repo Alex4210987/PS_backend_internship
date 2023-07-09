@@ -1,112 +1,101 @@
-//all in one file first; spilt later
-/*
-using gin framework
-使用百度地图开放平台api
-AK 不可以明文存放在代码中，必须通过环境变量等方式进行获取。
-通过正确构建 HTTP Request, 实现 轨迹重合率分析 的API的调用，
-并通过正确的解析 HTTP Response，获取 API 返回结果中的 "status" 和
-"similarity"，并输出。
-*/
 package main
 
 import (
 	"encoding/json"
 	"fmt"
-	"log"
+	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
-	"strings"
 
-	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
 
-// 定义请求体结构体
-type CompareRequest struct {
-	Track1 []string `json:"track1"`
-	Track2 []string `json:"track2"`
+type Request struct {
+	Track         []string `json:"track"`
+	StandardTrack []string `json:"standard_track"`
 }
 
-// 定义响应体结构体
-type CompareResponse struct {
-	Status     int     `json:"status"`
-	Similarity float64 `json:"similarity"`
+type Response struct {
+	Status int `json:"status"`
+	Data   struct {
+		Similarity float64 `json:"similarity"`
+	} `json:"data"`
 }
 
 func main() {
-	// 获取AK
-	err := godotenv.Load()
+	// 此处填写您在控制台-应用管理-创建应用后获取的AK
+	ak := os.Getenv("BAIDU_AK")
+	// 服务地址
+	host := "https://api.map.baidu.com"
+
+	// 请求地址
+	uri := "/trackmatch/v1/track"
+
+	// 读取包含请求数据的JSON文件
+	file, err := ioutil.ReadFile("input.json")
 	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-	ak := os.Getenv("BAIDU_MAP_AK")
-	if ak == "" {
-		fmt.Println("AK error")
+		fmt.Println("读取文件失败:", err)
 		return
 	}
 
-	// 创建HTTP服务
-	router := gin.Default()
-	api_path := os.Getenv("API_PATH")
-	// 创建API路由
-	router.POST(api_path, func(c *gin.Context) {
-		// 解析请求体
-		req, err := parseCompareRequest(c)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		// 调用百度地图API
-		apiResp, err := callBaiduMapAPI(api_path, ak, req)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-
-		// 返回结果
-		c.JSON(http.StatusOK, apiResp)
-	})
-
-	// 启动HTTP服务
-	runServer(router)
-}
-
-// 解析比较请求
-func parseCompareRequest(c *gin.Context) (*CompareRequest, error) {
-	var req CompareRequest
-	if err := c.BindJSON(&req); err != nil {
-		return nil, err
-	}
-	return &req, nil
-}
-
-// 调用百度地图API
-func callBaiduMapAPI(api_path string, ak string, req *CompareRequest) (*CompareResponse, error) {
-	url := fmt.Sprintf("http://api.map.baidu.com%s?ak=%s", api_path, ak)
-	body := fmt.Sprintf("track1=%s&track2=%s", strings.Join(req.Track1, ";"), strings.Join(req.Track2, ";"))
-	resp, err := http.Post(url, "application/x-www-form-urlencoded", strings.NewReader(body))
+	var reqData Request
+	err = json.Unmarshal(file, &reqData) // 解析JSON数据
 	if err != nil {
-		return nil, err
+		fmt.Println("解析JSON失败:", err)
+		return
 	}
+
+	// 转换为字符串形式
+	standardTrackStr := "[" + "\"" + joinStrings(reqData.StandardTrack, "\",\"") + "\"" + "]"
+	trackStr := "[" + "\"" + joinStrings(reqData.Track, "\",\"") + "\"" + "]"
+
+	// 设置请求参数
+	params := url.Values{
+		"ak":                []string{ak},
+		"option":            []string{"need_mapmatch:1|transport_mode:driving|denoise_grade:1|vacuate_grade:1"},
+		"standard_option":   []string{"need_mapmatch:1|transport_mode:driving|denoise_grade:1|vacuate_grade:1"},
+		"coord_type_input":  []string{"bd09ll"},
+		"coord_type_output": []string{"bd09ll"},
+		"standard_track":    []string{standardTrackStr},
+		"track":             []string{trackStr},
+	}
+
+	// 发起请求
+	url := host + uri
+	resp, err := http.PostForm(url, params)
+	if err != nil {
+		fmt.Printf("请求发送失败: %v", err)
+		return
+	}
+
 	defer resp.Body.Close()
 
-	var apiResp CompareResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		return nil, err
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("响应解析失败: %v", err)
+		return
 	}
-	return &apiResp, nil
+
+	// 解析响应体
+	var responseData Response
+	err = json.Unmarshal(body, &responseData)
+	//fmt.Println(string(body))
+	//print status and similarity in json
+	fmt.Println("Status:", responseData.Status, "Similarity:", responseData.Data.Similarity)
 }
 
-// 启动HTTP服务
-func runServer(router *gin.Engine) {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+// 辅助函数：将字符串切片连接成一个字符串
+func joinStrings(strs []string, sep string) string {
+	if len(strs) == 0 {
+		return ""
 	}
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	if len(strs) == 1 {
+		return strs[0]
 	}
-	router.Run(fmt.Sprintf(":%s", port))
+	result := strs[0]
+	for _, s := range strs[1:] {
+		result += sep + s
+	}
+	return result
 }
