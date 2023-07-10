@@ -8,12 +8,12 @@
 
 个性化的输出格式指：提供多个输出模式，
 比如仅输出路线时间、额外输出转站点、
-形式化的路线输出（ A(起点)->B(换乘)-> D ->C(终点站) 
+形式化的路线输出（ A(起点)->B(换乘)-> D ->C(终点站)
 这种输出格式即可）。
 */
 package task2
 
-import(
+import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -21,7 +21,7 @@ import(
 	"net/url"
 	"os"
 
-	"github.com/joho/godotenv"	
+	"github.com/joho/godotenv"
 )
 
 //路况查询
@@ -47,6 +47,9 @@ type Response struct {
 
 func GetRoadTrafficStatus(roadName string, city string) {
 	err := godotenv.Load()
+	if err != nil {
+		fmt.Println("Error loading .env file")
+	}
 	apiKey := os.Getenv("BAIDU_AK")
 	baseURL := "https://api.map.baidu.com/traffic/v1/road"
 	params := url.Values{

@@ -13,5 +13,5 @@ def decode_chinese(json_data):
         file.write(decoded_data)
 
 # 使用示例
-json_file = 'example1.json'
+json_file = 'example2.json'
 decode_chinese(json_file)
