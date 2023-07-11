@@ -61,7 +61,7 @@ func dbTest(db *sql.DB) {
 
 func DbManager() {
 	// 连接到 MySQL 数据库
-	db, err := sql.Open("mysql", "root:123456@tcp(127.0.0.1:3306)/database_name")
+	db, err := sql.Open("mysql", "root:123456@tcp(127.0.0.1:3306)/task4")
 	if err != nil {
 		log.Fatal(err)
 	}

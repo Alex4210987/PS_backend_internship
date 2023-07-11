@@ -1,7 +1,7 @@
 package main
 
-import "codes/task4"
+import "codes/task5"
 
 func main() {
-	task4.DbManager()
+	task5.DbManager()
 }
