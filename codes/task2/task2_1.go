@@ -1,16 +1,3 @@
-/*
-通过正确构建 HTTP Request，实现 实时路况查询 和四种 轻量级路线规划 ：
-驾车、骑行、步行、公交路线的 API 的调用，
-并通过正确的解析 HTTP Response，获取 API 返回信息，
-并支持用户输入和个性化的输出格式。
-
-用户输入指：Request 的构建可以通过用户的输入来改变参数。
-
-个性化的输出格式指：提供多个输出模式，
-比如仅输出路线时间、额外输出转站点、
-形式化的路线输出（ A(起点)->B(换乘)-> D ->C(终点站)
-这种输出格式即可）。
-*/
 package task2
 
 import (
@@ -18,82 +5,54 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"os"
 
 	"github.com/joho/godotenv"
 )
 
-//路况查询
-type Response struct {
-	Status      int    `json:"status"`
-	Message     string `json:"message"`
-	Description string `json:"description"`
-	Evaluation  struct {
-		Status     int    `json:"status"`
-		StatusDesc string `json:"status_desc"`
+const defaultRadius = 200
+
+type TrafficInfo struct {
+	Evaluation struct {
+		Status int `json:"status"`
 	} `json:"evaluation"`
-	RoadTraffic []struct {
-		CongestionSections []struct {
-			CongestionDistance int     `json:"congestion_distance"`
-			Speed              float64 `json:"speed"`
-			Status             int     `json:"status"`
-			CongestionTrend    string  `json:"congestion_trend"`
-			SectionDesc        string  `json:"section_desc"`
-		} `json:"congestion_sections"`
-		RoadName string `json:"road_name"`
-	} `json:"road_traffic"`
 }
 
-func GetRoadTrafficStatus(roadName string, city string) {
-	err := godotenv.Load()
+func GetTrafficStatus(latitude float64, longitude float64) (int, error) {
+	// 加载环境变量
+	err := godotenv.Load(".env")
 	if err != nil {
-		fmt.Println("Error loading .env file")
-	}
-	apiKey := os.Getenv("BAIDU_AK")
-	baseURL := "https://api.map.baidu.com/traffic/v1/road"
-	params := url.Values{
-		"road_name": []string{roadName},
-		"city":      []string{city},
-		"ak":        []string{apiKey},
+		return 0, fmt.Errorf("加载环境变量失败: %v", err)
 	}
 
-	url := baseURL + "?" + params.Encode()
+	// 从环境变量中获取 AK
+	ak := os.Getenv("BAIDU_AK")
+	if ak == "" {
+		return 0, fmt.Errorf("未设置 AK")
+	}
 
-	resp, err := http.Get(url)
+	// 构造请求URL
+	//https: //api.map.baidu.com/traffic/v1/around?ak=你的AK&center=39.912078,116.464303&radius=200&coord_type_input=gcj02&coord_type_output=gcj02
+	url := fmt.Sprintf("https://api.map.baidu.com/traffic/v1/around?ak=%s&center=%f,%f&radius=%d&coord_type_input=gcj02&coord_type_output=gcj02", ak, latitude, longitude, defaultRadius)
+	// 发起GET请求
+	response, err := http.Get(url)
 	if err != nil {
-		fmt.Printf("请求发送失败: %v", err)
-		return
+		return 0, fmt.Errorf("请求失败: %v", err)
 	}
-	defer resp.Body.Close()
+	defer response.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	// 读取响应内容
+	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		fmt.Printf("响应解析失败: %v", err)
-		return
+		return 0, fmt.Errorf("读取响应失败: %v", err)
 	}
 
-	var responseData Response
-	err = json.Unmarshal(body, &responseData)
+	// 解析JSON响应
+	var trafficInfo TrafficInfo
+	err = json.Unmarshal(body, &trafficInfo)
 	if err != nil {
-		fmt.Printf("JSON解析失败: %v", err)
-		return
+		return 0, fmt.Errorf("解析响应失败: %v", err)
 	}
 
-	fmt.Println("状态:", responseData.Status)
-	fmt.Println("信息:", responseData.Message)
-	fmt.Println("描述:", responseData.Description)
-	fmt.Println("评价状态:", responseData.Evaluation.Status)
-	fmt.Println("评价描述:", responseData.Evaluation.StatusDesc)
-
-	for _, road := range responseData.RoadTraffic {
-		fmt.Println("道路名称:", road.RoadName)
-		for _, section := range road.CongestionSections {
-			fmt.Println("拥堵路段描述:", section.SectionDesc)
-			fmt.Println("拥堵距离:", section.CongestionDistance)
-			fmt.Println("速度:", section.Speed)
-			fmt.Println("拥堵状态:", section.Status)
-			fmt.Println("拥堵趋势:", section.CongestionTrend)
-		}
-	}
+	return trafficInfo.Evaluation.Status, nil
 }

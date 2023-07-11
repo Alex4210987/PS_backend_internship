@@ -15,7 +15,7 @@ type RouteBus struct {
 
 type ResultBus struct {
 	Routes []RouteInfoBus `json:"routes"`
-	Taxi   Taxi           `json:"taxi"`
+	Taxi    Taxi   	  `json:"taxi"`
 }
 
 type RouteInfoBus struct {

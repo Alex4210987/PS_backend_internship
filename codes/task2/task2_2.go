@@ -62,6 +62,7 @@ type Step struct {
 	Path        string  `json:"path"`
 	StartLoc    LocInfo `json:"start_location"`
 	EndLoc      LocInfo `json:"end_location"`
+	Status      int     `json:"status"`
 }
 
 type Vehicle struct {
@@ -83,7 +84,7 @@ type LocInfo struct {
 	Lat float64 `json:"lat"`
 }
 
-func RoutePlanning(mode string, origin string, destination string, outputmode string, tactics string) (body []byte) {
+func RoutePlanning(mode string, origin string, destination string, outputmode string, tactics string) (returnroute Route) {
 	// 获取用户输入
 	_ = godotenv.Load()
 	ak := os.Getenv("BAIDU_AK")
@@ -136,7 +137,7 @@ func RoutePlanning(mode string, origin string, destination string, outputmode st
 	defer resp.Body.Close()
 
 	// 读取HTTP响应内容
-	body, err = ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("读取响应失败:", err)
 		os.Exit(1)
@@ -147,8 +148,7 @@ func RoutePlanning(mode string, origin string, destination string, outputmode st
 	fmt.Println(l, "bytes written successfully")
 	// 解析JSON响应
 	if mode == "4" {
-		RoutePlanningBus(body, outputmode)
-		return body
+		return Bus2Other(RoutePlanningBus(body, outputmode))
 	}
 	var route Route
 	err = json.Unmarshal(body, &route)
@@ -167,7 +167,7 @@ func RoutePlanning(mode string, origin string, destination string, outputmode st
 	default:
 		fmt.Println("无效的输出模式编号")
 	}
-	return body
+	return route
 }
 func OnlyTime(route Route) {
 	fmt.Println("路线规划模式：仅输出路线时间")
@@ -236,3 +236,27 @@ func removeHTMLTags(html string) string {
 	plainText := re.ReplaceAllString(html, "")
 	return plainText
 }
+func Bus2Other(routebus RouteBus) (route Route) {
+	route.Status = routebus.Status
+	route.Result.Taxi = routebus.Result.Taxi
+	route.Result.Routes = make([]RouteInfo, len(routebus.Result.Routes))
+	for i, routeinfobus := range routebus.Result.Routes {
+		route.Result.Routes[i].Distance = routeinfobus.Distance
+		route.Result.Routes[i].Duration = routeinfobus.Duration
+		route.Result.Routes[i].Price = routeinfobus.Price
+		route.Result.Routes[i].LinePrice = routeinfobus.LinePrice
+		route.Result.Routes[i].TrafficCondition = routeinfobus.TrafficCondition
+		route.Result.Routes[i].Steps = make([]Step, len(routeinfobus.Steps))
+		for j, stepbus := range routeinfobus.Steps {
+			route.Result.Routes[i].Steps[j].Distance = stepbus[0].Distance
+			route.Result.Routes[i].Steps[j].Duration = stepbus[0].Duration
+			route.Result.Routes[i].Steps[j].StepType = stepbus[0].StepType
+			route.Result.Routes[i].Steps[j].Instruction = stepbus[0].Instruction
+			route.Result.Routes[i].Steps[j].Vehicle = stepbus[0].Vehicle
+			route.Result.Routes[i].Steps[j].Path = stepbus[0].Path
+			route.Result.Routes[i].Steps[j].StartLoc = stepbus[0].StartLoc
+			route.Result.Routes[i].Steps[j].EndLoc = stepbus[0].EndLoc
+		}
+	}
+	return route
+} //把Steps            [][]Step `json:"steps"`转换成Steps            []Step `json:"steps"`
