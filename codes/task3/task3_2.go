@@ -31,8 +31,8 @@ func PersonaliazeRoutePlanning(mode string, oriname string, destname string, out
 		fmt.Println("终点地名错误", err)
 	}
 	//locinfo to string
-	originStr := fmt.Sprintf("%s,%s", orign.Lat, orign.Lng)
-	destinationStr := fmt.Sprintf("%s,%s", destination.Lat, destination.Lng)
+	originStr := fmt.Sprintf("%f,%f", orign.Lat, orign.Lng)
+	destinationStr := fmt.Sprintf("%f,%f", destination.Lat, destination.Lng)
 	//调用task2的路径规划函数
 	route := task2.RoutePlanning(mode, originStr, destinationStr, outputmode, tactics)
 	//调整duration
@@ -47,9 +47,9 @@ func PersonaliazeRoutePlanning(mode string, oriname string, destname string, out
 	case "2":
 		leastJam(route, modifidedTime, jam)
 	case "4":
-		leastTime(route, modifidedTime, jam)
+		leastTime(route, modifidedTime)
 	case "5":
-		leastTransfer(route, modifidedTime, jam)
+		leastTransfer(route, modifidedTime)
 	default:
 		fmt.Println("tactics参数错误")
 	}
@@ -137,7 +137,7 @@ func leastJam(route task2.Route, modifidedTime []float64, jamIndex []float64) {
 	}
 	fmt.Println("预计时间：", modifidedTime[minIndex])
 }
-func leastTime(route task2.Route, modifidedTime []float64, jamIndex []float64) {
+func leastTime(route task2.Route, modifidedTime []float64) {
 	//找到最小的时间
 	minTime := modifidedTime[0]
 	minIndex := 0
@@ -155,8 +155,9 @@ func leastTime(route task2.Route, modifidedTime []float64, jamIndex []float64) {
 	}
 	fmt.Println("预计时间：", modifidedTime[minIndex])
 }
+
 //寻找最少换乘的方法是：对于每个路线，统计每个step.vehicle.startname不重复的个数，输出最少的
-func leastTransfer(route task2.Route, modifidedTime []float64, jamIndex []float64) {
+func leastTransfer(route task2.Route, modifidedTime []float64) {
 	//找到最小的换乘次数
 	minTransfer := 1000
 	minIndex := 0
@@ -164,7 +165,7 @@ func leastTransfer(route task2.Route, modifidedTime []float64, jamIndex []float6
 		//统计换乘次数
 		transfer := 0
 		for _, step := range route.Result.Routes[i].Steps {
-			if step.Vehicle.StartName !=""{} {
+			if step.Vehicle.StartName != "" {
 				transfer++
 			}
 		}

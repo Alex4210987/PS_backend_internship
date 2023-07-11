@@ -1,0 +1,3 @@
+--2023-07-11 14:33:01--  http://baidu.com/
+Resolving baidu.com (baidu.com)... failed: Temporary failure in name resolution.
+wget: unable to resolve host address ‘baidu.com’
