@@ -1,14 +1,13 @@
 package task2
 
 import (
+	//"strings"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
-
-	//"strings"
 	"regexp"
 
 	"github.com/joho/godotenv"
@@ -40,12 +39,13 @@ type Result struct {
 }
 
 type RouteInfo struct {
-	Distance         int    `json:"distance"`
-	Duration         int    `json:"duration"`
-	Price            int    `json:"price"`
-	LinePrice        []Line `json:"line_price"`
-	Steps            []Step `json:"steps"`
-	TrafficCondition int    `json:"traffic_condition"`
+	Distance         int     `json:"distance"`
+	Duration         int     `json:"duration"`
+	Price            int     `json:"price"`
+	LinePrice        []Line  `json:"line_price"`
+	Steps            []Step  `json:"steps"`
+	TrafficCondition int     `json:"traffic_condition"`
+	JamIndex         float64 `json:"jam_index"`
 }
 
 type Line struct {
@@ -83,15 +83,105 @@ type LocInfo struct {
 	Lng float64 `json:"lng"`
 	Lat float64 `json:"lat"`
 }
+type Output struct { //对应result
+	Msg        []string    `json:"msg"`
+	RouteCount int         `json:"route_count"`
+	Distance   int         `json:"distance"`
+	Price      int         `json:"price"`
+	Routes     []RouteInfo `json:"routes"`
+}
 
-func RoutePlanning(mode string, origin string, destination string, outputmode string, tactics string) (returnroute Route) {
+func OnlyTime(route Route, output *Output) {
+	output.Msg = append(output.Msg, "路线规划模式：仅输出路线时间")
+	output.RouteCount = len(route.Result.Routes)
+	for _, route := range route.Result.Routes {
+		routeObj := RouteInfo{
+			Duration: route.Duration,
+			Steps:    route.Steps,
+			Distance: route.Distance,
+		}
+		output.Routes = append(output.Routes, routeObj)
+	}
+	// taxi duration
+	// 如果存在这个字段：
+	if route.Result.Taxi.Duration != 0 {
+		output.Msg = append(output.Msg, fmt.Sprintf("预计打车耗时：%d 秒", route.Result.Taxi.Duration))
+	}
+}
+
+func AllInfo(route Route, output *Output) {
+	output.Msg = append(output.Msg, "路线规划模式：输出所有信息")
+	output.RouteCount = len(route.Result.Routes)
+	for i, route := range route.Result.Routes {
+		routeObj := RouteInfo{
+			Duration: route.Duration,
+			Steps:    route.Steps,
+			Distance: route.Distance,
+		}
+		output.Routes = append(output.Routes, routeObj)
+		output.Msg = append(output.Msg, fmt.Sprintf("路线%d：", i+1))
+		output.Msg = append(output.Msg, fmt.Sprintf("预计距离：%d 米", route.Distance))
+		output.Msg = append(output.Msg, fmt.Sprintf("预计价格：%d 元", route.Price))
+		output.Msg = append(output.Msg, "路线：")
+		for _, step := range route.Steps {
+			output.Msg = append(output.Msg, removeHTMLTags(step.Instruction))
+		}
+	}
+	if route.Result.Taxi.Duration != 0 {
+		output.Msg = append(output.Msg, fmt.Sprintf("预计打车耗时：%d 秒", route.Result.Taxi.Duration))
+		output.Msg = append(output.Msg, fmt.Sprintf("预计距离：%f 米", route.Result.Taxi.Distance))
+		output.Msg = append(output.Msg, fmt.Sprintf("预计价格：%f 元", route.Result.Taxi.TotalPrice))
+		output.Msg = append(output.Msg, "路线：")
+		for _, detail := range route.Result.Taxi.Detail {
+			output.Msg = append(output.Msg, fmt.Sprintf("Desc: %s", detail.Desc))
+			output.Msg = append(output.Msg, fmt.Sprintf("KmPrice: %f", detail.KmPrice))
+			output.Msg = append(output.Msg, fmt.Sprintf("StartPrice: %d", detail.StartPrice))
+			output.Msg = append(output.Msg, fmt.Sprintf("TotalPrice: %d", detail.TotalPrice))
+		}
+	}
+}
+
+func OnlyTransferCar(route Route, output *Output) {
+	var stations []string
+	output.RouteCount = len(route.Result.Routes)
+	for _, route := range route.Result.Routes {
+		routeObj := RouteInfo{
+			Duration: route.Duration,
+			Steps:    route.Steps,
+			Distance: route.Distance,
+		}
+		output.Routes = append(output.Routes, routeObj)
+
+		output.Msg = append(output.Msg, fmt.Sprintf("预计距离：%d 米", route.Distance))
+		output.Msg = append(output.Msg, fmt.Sprintf("预计价格：%d 元", route.Price))
+		output.Msg = append(output.Msg, "路线：")
+		for _, step := range route.Steps {
+			// 在instruction字段中寻找被<b>\<\b>包围的字符串并存在一个数组里
+			re := regexp.MustCompile(`<b>(.*?)<\/b>`)
+			matches := re.FindAllStringSubmatch(step.Instruction, -1)
+			for _, match := range matches {
+				if len(match) > 1 {
+					stations = append(stations, match[1])
+				}
+			}
+		}
+		for _, station := range stations {
+			output.Msg = append(output.Msg, station)
+			// 如果不是最后
+			if station != stations[len(stations)-1] {
+				output.Msg = append(output.Msg, "->")
+			}
+		}
+	}
+}
+
+func RoutePlanning(mode string, origin string, destination string, outputmode string, tactics string) (returnroute Route, output Output) {
 	// 获取用户输入
 	_ = godotenv.Load()
 	ak := os.Getenv("BAIDU_AK")
 	var (
 		steps_info int
 	)
-	//仅输出路线时间、额外输出转站点、形式化的路线输出
 	// 根据用户输入构建API请求URL
 	var (
 		apiURL   string
@@ -122,7 +212,6 @@ func RoutePlanning(mode string, origin string, destination string, outputmode st
 	params.Set("origin", origin)
 	params.Set("destination", destination)
 	params.Set("ret_coordtype", retCoord)
-	//params.Set("vehicle", vehicle)
 	params.Set("coord_type", coordType)
 	params.Set("steps_info", fmt.Sprint(steps_info))
 	if mode == "1" {
@@ -142,94 +231,52 @@ func RoutePlanning(mode string, origin string, destination string, outputmode st
 		fmt.Println("读取响应失败:", err)
 		os.Exit(1)
 	}
-	//写道example.json里
-	f, _ := os.Create("example1.json")
-	l, _ := f.WriteString(string(body))
-	fmt.Println(l, "bytes written successfully")
+	//fmt.Println(l, "bytes written successfully")
 	// 解析JSON响应
+	// 创建一个用于存储输出的结构体
 	if mode == "4" {
-		return Bus2Other(RoutePlanningBus(body, outputmode))
+		routeBus, output := RoutePlanningBus(body, outputmode, output)
+		route := Bus2Other(routeBus)
+		return route, output
 	}
 	var route Route
 	err = json.Unmarshal(body, &route)
-	fmt.Println("route is", route)
+	//fmt.Println("route is", route)
 	if err != nil {
 		fmt.Println("解析响应失败:", err)
 		os.Exit(1)
 	}
 	switch outputmode {
 	case "1":
-		OnlyTime(route)
+		OnlyTime(route, &output)
 	case "2":
-		OnlyTransferCar(route)
+		OnlyTransferCar(route, &output)
 	case "3":
-		AllInfo(route)
+		AllInfo(route, &output)
 	default:
-		fmt.Println("无效的输出模式编号")
+		output.Msg = append(output.Msg, "无效的输出模式编号")
 	}
-	return route
-}
-func OnlyTime(route Route) {
-	fmt.Println("路线规划模式：仅输出路线时间")
-	i := 0
-	for _, route := range route.Result.Routes {
-		i++
-		fmt.Println("no", i, "预计耗时：", route.Duration, "秒")
+
+	// 设置其他字段的值
+	output.Distance = route.Result.Routes[0].Distance
+	output.Price = route.Result.Routes[0].Price
+	output.Distance = route.Result.Routes[0].Distance
+
+	// 将输出的结构体转换为JSON格式
+	jsonData, err := json.Marshal(output)
+	if err != nil {
+		fmt.Println("转换为JSON失败:", err)
+		os.Exit(1)
 	}
-	//taxi duration
-	//如果存在这个字段：
-	if route.Result.Taxi.Duration != 0 {
-		fmt.Println("预计打车耗时：", route.Result.Taxi.Duration, "秒")
+
+	// 将JSON数据写入文件
+	err = ioutil.WriteFile("output.json", jsonData, 0644)
+	if err != nil {
+		fmt.Println("写入文件失败:", err)
+		os.Exit(1)
 	}
-}
-func AllInfo(route Route) {
-	fmt.Println("路线规划模式：输出所有信息")
-	i := 0
-	for _, route := range route.Result.Routes {
-		i++
-		fmt.Println("no", i, "预计耗时：", route.Duration, "秒")
-		fmt.Println("预计距离：", route.Distance, "米")
-		fmt.Println("预计价格：", route.Price, "元")
-		fmt.Println("路线：")
-		for _, step := range route.Steps {
-			fmt.Println(removeHTMLTags(step.Instruction))
-		}
-	}
-	if route.Result.Taxi.Duration != 0 {
-		fmt.Println("预计打车耗时：", route.Result.Taxi.Duration, "秒")
-		fmt.Println("预计距离：", route.Result.Taxi.Distance, "米")
-		fmt.Println("预计价格：", route.Result.Taxi.TotalPrice, "元")
-		fmt.Println("路线：")
-		fmt.Println(route.Result.Taxi.Detail)
-	}
-} //输出各个路线和打车的耗时、距离、价格、路线、转站点
-func OnlyTransferCar(route Route) {
-	var stations []string
-	i := 0
-	for _, route := range route.Result.Routes {
-		i++
-		fmt.Println("no", i, "预计耗时：", route.Duration, "秒")
-		fmt.Println("预计距离：", route.Distance, "米")
-		fmt.Println("预计价格：", route.Price, "元")
-		fmt.Println("路线：")
-		for _, step := range route.Steps {
-			//在instruction字段中寻找被<b>\<\b>包围的字符串并存在一个数组里
-			re := regexp.MustCompile(`<b>(.*?)<\/b>`)
-			matches := re.FindAllStringSubmatch(step.Instruction, -1)
-			for _, match := range matches {
-				if len(match) > 1 {
-					stations = append(stations, match[1])
-				}
-			}
-		}
-		for _, station := range stations {
-			fmt.Println(station)
-			//如果不是最后
-			if station != stations[len(stations)-1] {
-				fmt.Print("->")
-			}
-		}
-	}
+
+	return route, output
 }
 func removeHTMLTags(html string) string {
 	re := regexp.MustCompile("<[^>]*>")

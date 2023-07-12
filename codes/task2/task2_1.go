@@ -13,22 +13,24 @@ import (
 const defaultRadius = 200
 
 type TrafficInfo struct {
-	Evaluation struct {
-		Status int `json:"status"`
-	} `json:"evaluation"`
+	Evaluation Evaluation `json:"evaluation"`
+}
+type Evaluation struct {
+	Status     int    `json:"status"`
+	StatusDesc string `json:"status_desc"`
 }
 
-func GetTrafficStatus(latitude float64, longitude float64) (int, error) {
+func GetTrafficStatus(latitude float64, longitude float64) (int, string, error) {
 	// 加载环境变量
 	err := godotenv.Load(".env")
 	if err != nil {
-		return 0, fmt.Errorf("加载环境变量失败: %v", err)
+		return 0, "", fmt.Errorf("加载环境变量失败: %v", err)
 	}
 
 	// 从环境变量中获取 AK
 	ak := os.Getenv("BAIDU_AK")
 	if ak == "" {
-		return 0, fmt.Errorf("未设置 AK")
+		return 0, "", fmt.Errorf("未设置 AK")
 	}
 
 	// 构造请求URL
@@ -37,22 +39,22 @@ func GetTrafficStatus(latitude float64, longitude float64) (int, error) {
 	// 发起GET请求
 	response, err := http.Get(url)
 	if err != nil {
-		return 0, fmt.Errorf("请求失败: %v", err)
+		return 0, "", fmt.Errorf("请求失败: %v", err)
 	}
 	defer response.Body.Close()
-
 	// 读取响应内容
 	body, err := ioutil.ReadAll(response.Body)
+
 	if err != nil {
-		return 0, fmt.Errorf("读取响应失败: %v", err)
+		return 0, "", fmt.Errorf("读取响应失败: %v", err)
 	}
 
 	// 解析JSON响应
 	var trafficInfo TrafficInfo
 	err = json.Unmarshal(body, &trafficInfo)
 	if err != nil {
-		return 0, fmt.Errorf("解析响应失败: %v", err)
+		return 0, "", fmt.Errorf("解析响应失败: %v", err)
 	}
 
-	return trafficInfo.Evaluation.Status, nil
+	return trafficInfo.Evaluation.Status, trafficInfo.Evaluation.StatusDesc, nil
 }

@@ -25,27 +25,14 @@ type Response struct {
 
 var ak string // 私有变量
 
-func TrackMatch(filepath string) {
-	err := godotenv.Load()
+func TrackMatch(request Request) (response Response, err error) {
+	err = godotenv.Load()
 	ak = os.Getenv("BAIDU_AK")
 	host := "https://api.map.baidu.com"
 	uri := "/trackmatch/v1/track"
 
-	file, err := ioutil.ReadFile(filepath)
-	if err != nil {
-		fmt.Println("读取文件失败:", err)
-		return
-	}
-
-	var reqData Request
-	err = json.Unmarshal(file, &reqData)
-	if err != nil {
-		fmt.Println("解析JSON失败:", err)
-		return
-	}
-
-	standardTrackStr := "[" + "\"" + joinStrings(reqData.StandardTrack, "\",\"") + "\"" + "]"
-	trackStr := "[" + "\"" + joinStrings(reqData.Track, "\",\"") + "\"" + "]"
+	standardTrackStr := "[" + "\"" + joinStrings(request.StandardTrack, "\",\"") + "\"" + "]"
+	trackStr := "[" + "\"" + joinStrings(request.Track, "\",\"") + "\"" + "]"
 
 	params := url.Values{
 		"ak":                []string{ak},
@@ -55,6 +42,20 @@ func TrackMatch(filepath string) {
 		"coord_type_output": []string{"bd09ll"},
 		"standard_track":    []string{standardTrackStr},
 		"track":             []string{trackStr},
+	}
+
+	// 将请求数据转换为 JSON 字符串
+	requestData, err := json.Marshal(request)
+	if err != nil {
+		fmt.Println("请求数据转换为 JSON 失败:", err)
+		return
+	}
+
+	// 将请求数据写入文件
+	err = ioutil.WriteFile("request.json", requestData, 0644)
+	if err != nil {
+		fmt.Println("写入请求数据文件失败:", err)
+		return
 	}
 
 	url := host + uri
@@ -72,9 +73,12 @@ func TrackMatch(filepath string) {
 		return
 	}
 
-	var responseData Response
-	err = json.Unmarshal(body, &responseData)
-	fmt.Println("Status:", responseData.Status, "Similarity:", responseData.Data.Similarity)
+	err = json.Unmarshal(body, &response)
+	if err != nil {
+		fmt.Printf("响应解析失败: %v", err)
+		return
+	}
+	return response, nil
 }
 
 func joinStrings(strs []string, sep string) string {
