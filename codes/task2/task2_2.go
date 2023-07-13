@@ -80,19 +80,21 @@ type Vehicle struct {
 }
 
 type LocInfo struct {
-	Lng float64 `json:"lng"`
-	Lat float64 `json:"lat"`
+	Lng string `json:"lng"`
+	Lat string `json:"lat"`
 }
 type Output struct { //对应result
-	Msg        []string    `json:"msg"`
-	RouteCount int         `json:"route_count"`
-	Distance   int         `json:"distance"`
-	Price      int         `json:"price"`
-	Routes     []RouteInfo `json:"routes"`
+	Msg         []string    `json:"msg"`
+	ModifiedMsg []string    `json:"modified_msg"`
+	RouteCount  int         `json:"route_count"`
+	Distance    int         `json:"distance"`
+	Price       int         `json:"price"`
+	Routes      []RouteInfo `json:"routes"`
 }
 
 func OnlyTime(route Route, output *Output) {
 	output.Msg = append(output.Msg, "路线规划模式：仅输出路线时间")
+	output.Msg = append(output.Msg, fmt.Sprintf("预计时间：%d", route.Result.Routes[0].Duration))
 	output.RouteCount = len(route.Result.Routes)
 	for _, route := range route.Result.Routes {
 		routeObj := RouteInfo{
@@ -224,14 +226,13 @@ func RoutePlanning(mode string, origin string, destination string, outputmode st
 		os.Exit(1)
 	}
 	defer resp.Body.Close()
-
 	// 读取HTTP响应内容
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("读取响应失败:", err)
 		os.Exit(1)
 	}
-	//fmt.Println(l, "bytes written successfully")
+	//fmt.Println(string(body))
 	// 解析JSON响应
 	// 创建一个用于存储输出的结构体
 	if mode == "4" {
@@ -246,6 +247,7 @@ func RoutePlanning(mode string, origin string, destination string, outputmode st
 		fmt.Println("解析响应失败:", err)
 		os.Exit(1)
 	}
+
 	switch outputmode {
 	case "1":
 		OnlyTime(route, &output)

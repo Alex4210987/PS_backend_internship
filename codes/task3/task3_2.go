@@ -21,29 +21,35 @@ import (
 )
 
 func PersonaliazeRoutePlanning(mode string, oriname string, destname string, outputmode string, tactics string) (rtnoutput *task2.Output) {
-	var orign *task2.LocInfo
-	var destination *task2.LocInfo
+	var orign *task2.LocInfo = &task2.LocInfo{}       // 为 orign 分配内存
+	var destination *task2.LocInfo = &task2.LocInfo{} // 为 destination 分配内存
 	var err error
-	orign.Lng, orign.Lat, err = task3_1.Geocode(oriname)
+	lngfloat, latfloat, err := task3_1.Geocode(oriname)
+	orign.Lng = strconv.FormatFloat(lngfloat, 'f', -1, 64)
+	orign.Lat = strconv.FormatFloat(latfloat, 'f', -1, 64)
 	if err != nil {
 		fmt.Println("起点地名错误", err)
 	}
-	destination.Lng, destination.Lat, err = task3_1.Geocode(destname)
+	lngfloat, latfloat, err = task3_1.Geocode(destname)
+	destination.Lng = strconv.FormatFloat(lngfloat, 'f', -1, 64)
+	destination.Lat = strconv.FormatFloat(latfloat, 'f', -1, 64)
 	if err != nil {
 		fmt.Println("终点地名错误", err)
 	}
 	//locinfo to string
-	originStr := fmt.Sprintf("%f,%f", orign.Lat, orign.Lng)
-	destinationStr := fmt.Sprintf("%f,%f", destination.Lat, destination.Lng)
+	originStr := fmt.Sprintf("%s,%s", orign.Lat, orign.Lng)
+	destinationStr := fmt.Sprintf("%s,%s", destination.Lat, destination.Lng)
+
 	//调用task2的路径规划函数
 	route, output := task2.RoutePlanning(mode, originStr, destinationStr, outputmode, tactics)
 	//调整duration
 	dur, jam := ModifidedTime(route)
 	outputJamIndex(dur, jam, output)
 	//三种功能： 2.拥堵最少，4.加权时间最短，5.换乘最少。均是针对公交
+
 	if mode != "4" {
-		fmt.Println("不是公交模式")
-		return
+		fmt.Println("不是公交模式,只有一条路线")
+		return &output
 	}
 	switch tactics {
 	case "2":
@@ -140,9 +146,9 @@ func leastJam(route task2.Route, jamIndex []float64, output *task2.Output) {
 			minIndex = i
 		}
 	}
-	output.Msg = append(output.Msg, fmt.Sprintf("最小拥堵指数的路线：%d", minIndex+1))
-	output.Msg = append(output.Msg, fmt.Sprintf("拥堵指数：%f", minJamIndex))
-	output.Msg = append(output.Msg, fmt.Sprintf("预计时间：%d", route.Result.Routes[minIndex].Duration))
+	output.ModifiedMsg = append(output.ModifiedMsg, fmt.Sprintf("最小拥堵指数的路线：%d", minIndex+1))
+	output.ModifiedMsg = append(output.ModifiedMsg, fmt.Sprintf("拥堵指数：%f", minJamIndex))
+	output.ModifiedMsg = append(output.ModifiedMsg, fmt.Sprintf("预计时间：%d", route.Result.Routes[minIndex].Duration))
 }
 func leastTime(route task2.Route, modifidedTime []float64, output *task2.Output) {
 	//找到最小的时间
@@ -154,9 +160,9 @@ func leastTime(route task2.Route, modifidedTime []float64, output *task2.Output)
 			minIndex = i
 		}
 	}
-	//存储最小时间的路线到output结构体的Msg字段
-	output.Msg = append(output.Msg, fmt.Sprintf("最小时间的路线：%d", minIndex+1))
-	output.Msg = append(output.Msg, fmt.Sprintf("预计时间：%f", modifidedTime[minIndex]))
+	//存储最小时间的路线到output结构体的ModifiedMsg字段
+	output.ModifiedMsg = append(output.ModifiedMsg, fmt.Sprintf("最小时间的路线：%d", minIndex+1))
+	output.ModifiedMsg = append(output.ModifiedMsg, fmt.Sprintf("预计时间：%f", modifidedTime[minIndex]))
 }
 
 //寻找最少换乘的方法是：对于每个路线，统计每个step.vehicle.startname不重复的个数，输出最少的
@@ -177,8 +183,8 @@ func leastTransfer(route task2.Route, modifidedTime []float64, output *task2.Out
 			minIndex = i
 		}
 	}
-	//存储最小换乘次数的路线到output结构体的Msg字段
-	output.Msg = append(output.Msg, fmt.Sprintf("最小换乘次数的路线：%d", minIndex+1))
-	output.Msg = append(output.Msg, fmt.Sprintf("换乘次数：%d", minTransfer))
-	output.Msg = append(output.Msg, fmt.Sprintf("预计时间：%f", modifidedTime[minIndex]))
+	//存储最小换乘次数的路线到output结构体的ModifiedMsg字段
+	output.ModifiedMsg = append(output.ModifiedMsg, fmt.Sprintf("最小换乘次数的路线：%d", minIndex+1))
+	output.ModifiedMsg = append(output.ModifiedMsg, fmt.Sprintf("换乘次数：%d", minTransfer))
+	output.ModifiedMsg = append(output.ModifiedMsg, fmt.Sprintf("预计时间：%f", modifidedTime[minIndex]))
 }

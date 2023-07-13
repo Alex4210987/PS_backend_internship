@@ -12,6 +12,8 @@ func RoutePlanningProcess(c *gin.Context) {
 	mode := c.PostForm("mode")
 	outputmode := c.PostForm("outputmode")
 	tactics := c.PostForm("tactics")
+	//open file
+
 	// 调用路径规划函数
 	output := PersonaliazeRoutePlanning(mode, origin, destination, outputmode, tactics)
 	// 返回结果
