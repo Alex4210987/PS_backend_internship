@@ -44,5 +44,5 @@ func main() {
 	router.StaticFile("/trafficstatus.js", "./static/trafficstatus.js")
 	router.StaticFile("/routeplanning.js", "./static/routeplanning.js")
 	// 启动服务
-	router.Run("localhost:8080")
+	router.Run(":8080")
 }
