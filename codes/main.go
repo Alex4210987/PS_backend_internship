@@ -36,11 +36,13 @@ func main() {
 	//定义别名设置的POST路由
 	router.POST("/alias", task5.AliasProcess)
 
+	//定义偏好设置的POST路由
+	router.POST("/prteference", task5.PreferenceProcess)
+
 	// 设置gin服务器的静态文件路径
 	router.StaticFile("/trackmatch.js", "./static/trackmatch.js")
 	router.StaticFile("/trafficstatus.js", "./static/trafficstatus.js")
 	router.StaticFile("/routeplanning.js", "./static/routeplanning.js")
 	// 启动服务
-	router.Run(":8080")
-	//湖北省武汉市洪山区华中科技大学 湖北省武汉市洪山区中国地质大学
+	router.Run("localhost:8080")
 }

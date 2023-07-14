@@ -1,82 +1,124 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mdui/1.0.2/css/mdui.min.css"
+    integrity="sha512-Hh2syGXSuZabqBNcdvPiGo67ASyKhlKTZV9lLOmJp10qZ1v8/YPeuZBoOh0WmS/UPwWtRzQhNJfYyKDAhdGocQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
   <title>功能调用入口</title>
   <style>
-    /* CSS样式 */
   </style>
 </head>
-<body>
-  <h1>功能调用入口</h1>
-  <form id="routePlanningForm">
-    <label for="originInput">起点：</label>
-    <input type="text" id="originInput" name="origin">
-    <br>
-    <label for="destinationInput">终点：</label>
-    <input type="text" id="destinationInput" name="destination">
-    <br>
-    <label for="modeSelect">模式：</label>
-    <select id="modeSelect" name="mode">
-      <option value="1">开车</option>
-      <option value="2">骑车</option>
-      <option value="3">步行</option>
-      <option value="4">公交</option>
-    </select>
-    <br>
-    <label for="outputModeSelect">输出模式：</label>
-    <select id="outputModeSelect" name="outputmode">
-      <option value="1">只输出时间</option>
-      <option value="2">只输出换乘</option>
-      <option value="3">输出全部信息</option>
-    </select>
-    <br>
-    <label for="tacticsSelect">策略：</label>
-    <select id="tacticsSelect" name="tactics">
-      <option value="0">常规</option>
-      <option value="1">不走高速</option>
-      <option value="2">躲避拥堵</option>
-      <option value="3">距离最短</option>
-      <option value="4">修正时间最短</option>
-      <option value="5">换乘最少</option>
-    </select>
-    <br>
-    <button type="submit" id="routePlanningButton">路径规划</button>
-  </form>
-  
-  <form id="trafficStatusForm">
-    <label for="locationInput">地名：</label>
-    <input type="text" id="locationInput" name="location">
-    <br>
-    <button type="submit" id="trafficStatusButton">查询路况</button>
-  </form>
 
-  <form id="trackMatchForm">
-    <label for="trackInput">轨迹：</label>
-    <input type="text" id="trackInput" name="track">
-    <br>
-    <label for="standardTrackInput">标准轨迹：</label>
-    <input type="text" id="standardTrackInput" name="standard_track">
-    <br>
-    <p>输入形式：一个字符串列表，每个字符串以分号进行分隔。</p>
-    <button type="submit" id="trackMatchButton">轨迹匹配</button>
-  </form>
+<body class="mdui-loaded mdui-theme-primary-blue mdui-theme-accent-light-blue">
+  <div class="mdui-container mdui-row">
+    <div class="mdui-col-xs-12">
+      <h1 class="mdui-typo-title">功能调用入口</h1>
+    </div>
 
-  <form id="aliasForm" action="/alias" method="POST">
-    <label for="originalNameInput">原名：</label>
-    <input type="text" id="originalNameInput" name="originalName">
-    <br>
-    <label for="aliasInput">别名：</label>
-    <input type="text" id="aliasInput" name="alias">
-    <br>
-    <button type="submit">添加别名</button>
-  </form>
-  <div id="resultContainer"></div>
-  <div id="historyDataContainer"></div>
+    <div class="mdui-col-xs-12">
+      <div class="mdui-card">
+        <div class="mdui-card-content mdui-row">
+          <form id="routePlanningForm">
+            <div class="mdui-textfield mdui-col-xs-6">
+              <label class="mdui-textfield-label" for="originInput">起点：</label>
+              <input class="mdui-textfield-input" type="text" id="originInput" name="origin">
+            </div>
+
+            <div class="mdui-textfield mdui-col-xs-6">
+              <label class="mdui-textfield-label" for="destinationInput">终点：</label>
+              <input class="mdui-textfield-input" type="text" id="destinationInput" name="destination">
+            </div>
+
+            <div class="mdui-textfield mdui-col-xs-4">
+              <label class="mdui-textfield-label" for="modeSelect">模式：</label>
+              <select class="mdui-select" id="modeSelect" name="mode" style="width: 100%;">
+                <option value="1">开车</option>
+                <option value="2">骑车</option>
+                <option value="3">步行</option>
+                <option value="4">公交</option>
+              </select>
+            </div>
+
+            <div class="mdui-textfield mdui-col-xs-4">
+              <label class="mdui-textfield-label" for="outputModeSelect">输出模式：</label>
+              <select class="mdui-select" id="outputModeSelect" name="outputmode" style="width: 100%;">
+                <option value="1">只输出时间</option>
+                <option value="2">只输出换乘</option>
+                <option value="3">输出全部信息</option>
+              </select>
+            </div>
+
+            <div class="mdui-textfield mdui-col-xs-4">
+              <label class="mdui-textfield-label" for="tacticsSelect">策略：</label>
+              <select class="mdui-select" id="tacticsSelect" name="tactics" style="width: 100%;">
+                <option value="0">常规</option>
+                <option value="1">不走高速</option>
+                <option value="2">躲避拥堵</option>
+                <option value="3">距离最短</option>
+                <option value="4">修正时间最短</option>
+                <option value="5">换乘最少</option>
+              </select>
+            </div>
+
+            <div class="mdui-col-xs-12" style="margin-top: 20px;">
+              <button class="mdui-btn mdui-color-theme" type="submit" id="routePlanningButton">路径规划</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="mdui-card">
+        <div class="mdui-card-content mdui-row">
+          <form id="trafficStatusForm">
+            <label class="mdui-textfield-label" for="locationInput">地名：</label>
+            <input class="mdui-textfield-input" type="text" id="locationInput" name="location">
+            <br>
+            <button class="mdui-btn mdui-color-theme" type="submit" id="trafficStatusButton">查询路况</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="mdui-card">
+        <div class="mdui-card-content mdui-row">
+          <form id="trackMatchForm">
+            <label class="mdui-textfield-label" for="trackInput">轨迹：</label>
+            <input class="mdui-textfield-input" type="text" id="trackInput" name="track">
+            <br>
+            <label class="mdui-textfield-label" for="standardTrackInput">标准轨迹：</label>
+            <input class="mdui-textfield-input" type="text" id="standardTrackInput" name="standard_track">
+            <br>
+            <p>输入形式：一个字符串列表，每个字符串以分号进行分隔。</p>
+            <button class="mdui-btn mdui-color-theme" type="submit" id="trackMatchButton">轨迹匹配</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="mdui-card">
+        <div class="mdui-card-content mdui-row">
+          <form id="aliasForm" action="/alias" method="POST">
+            <label class="mdui-textfield-label" for="originalNameInput">原名：</label>
+            <input class="mdui-textfield-input" type="text" id="originalNameInput" name="originalName">
+            <br>
+            <label class="mdui-textfield-label" for="aliasInput">别名：</label>
+            <input class="mdui-textfield-input" type="text" id="aliasInput" name="alias">
+            <br>
+            <button class="mdui-btn mdui-color-theme" type="submit">添加别名</button>
+          </form>
+          <div id="resultContainer"></div>
+          <div id="historyDataContainer"></div>
+        </div>
+    </div>
+    </div>
+  </div>
 
   <script src="trackmatch.js"></script>
   <script src="trafficstatus.js"></script>
   <script src="routeplanning.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mdui/1.0.2/js/mdui.min.js"
+    integrity="sha512-LBh0vC8hNru7991yk7vBb3tiBCU41shGOowGRnLqz63KYedvNQOyGOKHnl/pHSRYJ2P45bjzALArvDDHSSc2KA=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </body>
+
 </html>

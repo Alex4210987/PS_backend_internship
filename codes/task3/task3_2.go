@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 
 	"codes/task2"
 	"codes/task3_1"
@@ -104,6 +105,76 @@ func ModifidedTime(route task2.Route) ([]float64, []float64) {
 	return duration, allJamIndex
 
 }
+func ModifidedTimeGo(route task2.Route) ([]float64, []float64) {
+	duration := make([]float64, len(route.Result.Routes))
+	allJamIndex := make([]float64, len(route.Result.Routes))
+
+	wg := sync.WaitGroup{}
+	wg.Add(len(route.Result.Routes))
+
+	for i, r := range route.Result.Routes {
+		go func(i int, r task2.RouteInfo) {
+			defer wg.Done()
+
+			var stepJamIndex float64
+			var noneZeroPath int
+
+			stepChan := make(chan float64) // 用于接收每个路径的结果
+			pathWG := sync.WaitGroup{}     // 等待路径循环结束
+
+			for _, step := range r.Steps {
+				pathArray := Path2Array(step.Path)
+
+				for _, path := range pathArray {
+					pathWG.Add(1)
+					go func(path []float64) {
+
+						defer pathWG.Done()
+
+						trafficStatus, _, err := task2.GetTrafficStatus(path[1], path[0])
+						if err != nil {
+							fmt.Println("获取交通状态失败:", err)
+							return
+						}
+
+						jamIndexFloat := float64(trafficStatus)
+						if jamIndexFloat >= 1.0 && jamIndexFloat <= 4.0 {
+							stepChan <- jamIndexFloat
+						} else {
+							stepChan <- 0.0
+						}
+					}(path)
+				}
+			}
+
+			go func() {
+				pathWG.Wait() // 等待所有路径循环结束
+				close(stepChan)
+			}()
+
+			for jamIndexFloat := range stepChan {
+				if jamIndexFloat > 0 {
+					stepJamIndex += jamIndexFloat
+					noneZeroPath++
+				}
+			}
+
+			if stepJamIndex > 0.5 {
+				stepJamIndex /= float64(noneZeroPath)
+				duration[i] = float64(r.Duration) * (0.8 + stepJamIndex*0.2)
+			} else {
+				duration[i] = float64(r.Duration)
+			}
+			allJamIndex[i] = stepJamIndex
+			fmt.Println("r.Duration:", r.Duration)
+			fmt.Printf("Route %d - Duration: %f, Jam Index: %f\n", i, duration[i], allJamIndex[i])
+		}(i, r)
+	}
+
+	wg.Wait()
+
+	return duration, allJamIndex
+}
 
 /*
 它提供了三种拥堵status，1、2、3、4，那么事实上可以认为H=H*(1+(status-1)*20%)
@@ -134,7 +205,7 @@ func Path2Array(path string) (pathArray [][]float64) {
 	return pathArray
 }
 func outputJamIndex(duration []float64, jamIndex []float64, output *task2.Output) {
-	fmt.Println("我他妈进来了！")
+	//fmt.Println("我他妈进来了！")
 	for i := range duration {
 		//增加一个新的空output.routes，设置duration和jamIndex
 		output.Routes = append(output.Routes, task2.ReturnRouteInfo{})

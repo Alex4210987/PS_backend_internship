@@ -25,8 +25,8 @@ type Preference struct {
 type Alias struct {
 	ID       int `gorm:"primaryKey"`
 	UserID_A int
-	Location string `json:"location"`
-	Alias    string `json:"alias"`
+	Location string
+	Alias    string
 }
 type User struct {
 	ID   int `gorm:"primaryKey"`

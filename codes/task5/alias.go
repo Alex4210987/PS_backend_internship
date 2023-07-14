@@ -1,7 +1,6 @@
 package task5
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -12,13 +11,13 @@ import (
 )
 
 func AliasProcess(c *gin.Context) {
-	// 解析请求中的JSON数据
+	// 解析请求中的 JSON 数据
 	var alias Alias
-	fmt.Println(c.Request.Body)
 	if err := c.ShouldBindJSON(&alias); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
 	// 连接数据库
 	dsn := "root:123456@tcp(127.0.0.1:3306)/task5"
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
@@ -26,11 +25,10 @@ func AliasProcess(c *gin.Context) {
 		log.Fatal(err)
 	}
 
-	// 根据别名ID查询是否已存在
+	// 根据 Location 查询是否已存在
 	var existingAlias Alias
-	if err := db.First(&existingAlias, alias.ID).Error; err == nil {
+	if err := db.Where("location = ?", alias.Location).First(&existingAlias).Error; err == nil {
 		// 别名已存在，更新别名数据
-		existingAlias.Location = alias.Location
 		existingAlias.Alias = alias.Alias
 		if err := db.Save(&existingAlias).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update alias"})
@@ -46,6 +44,7 @@ func AliasProcess(c *gin.Context) {
 		c.JSON(http.StatusCreated, alias)
 	}
 }
+
 func TryAlias(location string) string {
 	// 连接数据库
 	dsn := "root:123456@tcp(127.0.0.1:3306)/task5"
