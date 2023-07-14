@@ -30,10 +30,10 @@ func TrackMatch(request Request) (response Response, err error) {
 	ak = os.Getenv("BAIDU_AK")
 	host := "https://api.map.baidu.com"
 	uri := "/trackmatch/v1/track"
-
+	fmt.Println(request)
 	standardTrackStr := "[" + "\"" + joinStrings(request.StandardTrack, "\",\"") + "\"" + "]"
 	trackStr := "[" + "\"" + joinStrings(request.Track, "\",\"") + "\"" + "]"
-
+	fmt.Println(standardTrackStr)
 	params := url.Values{
 		"ak":                []string{ak},
 		"option":            []string{"need_mapmatch:1|transport_mode:driving|denoise_grade:1|vacuate_grade:1"},
@@ -43,21 +43,7 @@ func TrackMatch(request Request) (response Response, err error) {
 		"standard_track":    []string{standardTrackStr},
 		"track":             []string{trackStr},
 	}
-
 	// 将请求数据转换为 JSON 字符串
-	requestData, err := json.Marshal(request)
-	if err != nil {
-		fmt.Println("请求数据转换为 JSON 失败:", err)
-		return
-	}
-
-	// 将请求数据写入文件
-	err = ioutil.WriteFile("request.json", requestData, 0644)
-	if err != nil {
-		fmt.Println("写入请求数据文件失败:", err)
-		return
-	}
-
 	url := host + uri
 	resp, err := http.PostForm(url, params)
 	if err != nil {

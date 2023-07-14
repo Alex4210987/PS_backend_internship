@@ -1,6 +1,7 @@
 package task1
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -17,13 +18,15 @@ func TrackMatchProcess(c *gin.Context) {
 		})
 		return
 	}
-
+	fmt.Println(reqData)
 	// 调用轨迹匹配函数
 	respData, err := TrackMatch(reqData)
+	fmt.Println(respData)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"status": http.StatusInternalServerError,
 			"msg":    "轨迹匹配失败",
+			"data":   reqData,
 		})
 		return
 	}

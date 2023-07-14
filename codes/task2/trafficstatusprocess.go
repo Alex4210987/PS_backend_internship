@@ -3,6 +3,8 @@ package task2
 
 import (
 	"codes/task3_1"
+	"codes/task5"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -11,6 +13,8 @@ import (
 func TrafficStatusProcess(c *gin.Context) {
 	//读取location参数
 	location := c.PostForm("location")
+	location = task5.TryAlias(location)
+	fmt.Println(location)
 	//调用经纬度api
 	lng, lat, err := task3_1.Geocode(location)
 	//错误处理

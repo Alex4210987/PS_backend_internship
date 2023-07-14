@@ -44,7 +44,6 @@ func GetTrafficStatus(latitude float64, longitude float64) (int, string, error) 
 	defer response.Body.Close()
 	// 读取响应内容
 	body, err := ioutil.ReadAll(response.Body)
-
 	if err != nil {
 		return 0, "", fmt.Errorf("读取响应失败: %v", err)
 	}
