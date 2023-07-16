@@ -1,25 +1,25 @@
 package task5
 
 import (
-	"fmt"
+	"database/sql"
 	"log"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
-type Route struct {
-	ID         int `gorm:"primaryKey"`
-	StartPoint string
-	EndPoint   string
-}
-
 type Preference struct {
 	ID         int `gorm:"primaryKey"`
-	UserID_P   int
+	UserID_P   int `gorm:"column:userid_p"`
 	Mode       string
-	OutputMode string
+	OutputMode string `gorm:"column:outputmode"`
 	Tactics    string
+}
+
+type Route struct {
+	ID         int    `gorm:"primaryKey"`
+	StartPoint string `gorm:"column:startpoint"`
+	EndPoint   string `gorm:"column:endpoint"`
 }
 
 type Alias struct {
@@ -34,55 +34,50 @@ type User struct {
 }
 
 func DbManager() {
-	dsn := "root:123456@tcp(127.0.0.1:3306)/task5"
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	// 连接到 MySQL 服务器
+	dsn := "root:123456@tcp(127.0.0.1:3306)/"
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	// 创建数据库
+	_, err = db.Exec("CREATE DATABASE IF NOT EXISTS task5")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// 连接到 task5 数据库
+	dsn = "root:123456@tcp(127.0.0.1:3306)/task5"
+	gormDB, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// 创建表
-	err = db.AutoMigrate(&User{}, &Route{}, &Preference{}, &Alias{})
+	err = gormDB.AutoMigrate(&User{}, &Route{}, &Preference{}, &Alias{})
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// 创建用户
 	user := User{ID: 1, Name: "default"}
-	result := db.Create(&user)
+	result := gormDB.Create(&user)
 	if result.Error != nil {
 		log.Fatal(result.Error)
 	}
-	dbTest(db)
 }
-func dbTest(db *gorm.DB) {
-	// 插入数据
-	db.Create(&Route{ID: 1, StartPoint: "A", EndPoint: "B"})
-	db.Create(&Route{ID: 2, StartPoint: "B", EndPoint: "C"})
-
-	db.Create(&Preference{ID: 1, UserID_P: 1, Mode: "Option A", OutputMode: "Option B", Tactics: "Option C"})
-
-	db.Create(&Alias{ID: 1, UserID_A: 1, Location: "Work", Alias: "Office"})
-	db.Create(&Alias{ID: 2, UserID_A: 1, Location: "Home", Alias: "My House"})
-
-	// 查询数据
-	fmt.Println("查询路线数据：")
-	var routes []Route
-	db.Find(&routes)
-	for _, route := range routes {
-		fmt.Printf("ID: %d, StartPoint: %s, EndPoint: %s\n", route.ID, route.StartPoint, route.EndPoint)
+func CloseDB() {
+	dsn := "root:123456@tcp(127.0.0.1:3306)/task5"
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	fmt.Println("\n查询用户偏好数据：")
-	var preferences []Preference
-	db.Find(&preferences)
-	for _, preference := range preferences {
-		fmt.Printf("ID: %d, UserID: %d, Mode: %s, OutputMode: %s, Tactics: %s\n", preference.ID, preference.UserID_P, preference.Mode, preference.OutputMode, preference.Tactics)
-	}
-
-	fmt.Println("\n查询地点别名数据：")
-	var aliases []Alias
-	db.Find(&aliases)
-	for _, alias := range aliases {
-		fmt.Printf("ID: %d, UserID: %d, Location: %s, Alias: %s\n", alias.ID, alias.UserID_A, alias.Location, alias.Alias)
+	// 删除表
+	err = db.Migrator().DropTable(&User{}, &Route{}, &Preference{}, &Alias{})
+	if err != nil {
+		log.Fatal(err)
 	}
 }

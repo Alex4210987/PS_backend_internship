@@ -44,7 +44,7 @@ func PersonaliazeRoutePlanning(mode string, oriname string, destname string, out
 	//调用task2的路径规划函数
 	route, output := task2.RoutePlanning(mode, originStr, destinationStr, outputmode, tactics)
 	//调整duration
-	dur, jam := ModifidedTime(route)
+	dur, jam := ModifidedTimeGo(route)
 	outputJamIndex(dur, jam, &output)
 	//三种功能： 2.拥堵最少，4.加权时间最短，5.换乘最少。均是针对公交
 	if mode != "4" {

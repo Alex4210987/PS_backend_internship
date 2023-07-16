@@ -11,6 +11,7 @@ import (
 )
 
 func main() {
+	task5.DbManager()
 	router := gin.Default()
 
 	// 配置静态文件路由
@@ -37,12 +38,15 @@ func main() {
 	router.POST("/alias", task5.AliasProcess)
 
 	//定义偏好设置的POST路由
-	router.POST("/prteference", task5.PreferenceProcess)
+	router.POST("/preference", task5.PreferenceProcess)
+
+	//定义路线设置的POST路由
+	router.POST("/route", task5.RouteProcess)
 
 	// 设置gin服务器的静态文件路径
 	router.StaticFile("/trackmatch.js", "./static/trackmatch.js")
 	router.StaticFile("/trafficstatus.js", "./static/trafficstatus.js")
 	router.StaticFile("/routeplanning.js", "./static/routeplanning.js")
 	// 启动服务
-	router.Run("localhost:8080")
+	router.Run(":8080")
 }

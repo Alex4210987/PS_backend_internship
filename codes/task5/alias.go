@@ -27,9 +27,9 @@ func AliasProcess(c *gin.Context) {
 
 	// 根据 Location 查询是否已存在
 	var existingAlias Alias
-	if err := db.Where("location = ?", alias.Location).First(&existingAlias).Error; err == nil {
+	if err := db.Where("alias = ?", alias.Alias).First(&existingAlias).Error; err == nil {
 		// 别名已存在，更新别名数据
-		existingAlias.Alias = alias.Alias
+		existingAlias.Location = alias.Location
 		if err := db.Save(&existingAlias).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update alias"})
 			return
@@ -55,9 +55,9 @@ func TryAlias(location string) string {
 
 	// 根据地点查询别名
 	var alias Alias
-	if err := db.Where("location = ?", location).First(&alias).Error; err == nil {
+	if err := db.Where("alias = ?", location).First(&alias).Error; err == nil {
 		// 找到别名，返回别名值
-		return alias.Alias
+		return alias.Location
 	}
 
 	// 没有找到别名，返回原始地点
